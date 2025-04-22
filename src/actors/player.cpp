@@ -18,27 +18,19 @@ Player::Player(Camera& c)
     mPosition = Vector3();
     mTargetPosition = Vector3();
 
-    SetState(PlayerState::IDLE);
+    mStateManager = new PlayerStateManager(this);
+}
+
+Player::~Player()
+{
+    delete mStateManager;
 }
 
 void Player::Update(float dt)
 {
     UpdateCamera();
 
-    switch (mState) {
-    case PlayerState::IDLE:
-        UpdateStateIdle();
-        break;
-    case PlayerState::MOVE:
-        UpdateStateIdle();
-        break;
-    case PlayerState::ATTACK:
-        UpdateStateAttack(dt);
-        break;
-    case PlayerState::ATTACK_MOVING:
-        UpdateStateAttackMoving(dt);
-        break;
-    }
+    mStateManager->Update(dt);
 
     UpdatePosition(mTargetPosition, dt * mMovementSpeed);
 }
@@ -49,39 +41,6 @@ void Player::UpdateCamera()
         auto sensibility = 0.003f;
         auto mouseDelta = GetMouseDelta();
         CameraYaw(mCamera, -mouseDelta.x * sensibility, true);
-    }
-}
-
-void Player::UpdateStateIdle()
-{
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-        SetState(PlayerState::MOVE);
-        return;
-    }
-    if (IsKeyPressed(KEY_ONE)) {
-        SetState(PlayerState::ATTACK);
-        return;
-    }
-    if (IsKeyPressed(KEY_TWO)) {
-        SetState(PlayerState::ATTACK_MOVING);
-        return;
-    }
-}
-
-void Player::UpdateStateAttack(float dt)
-{
-    if ((mCooldown += dt) >= 1.0f) {
-        SetState(PlayerState::IDLE);
-    }
-}
-
-void Player::UpdateStateAttackMoving(float dt)
-{
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-        MoveTo(GetMouseTargetPosition());
-    }
-    if ((mCooldown += dt) >= 1.0f) {
-        SetState(PlayerState::MOVE);
     }
 }
 
@@ -116,27 +75,6 @@ Vector3 Player::GetMouseTargetPosition()
     return col.point;
 }
 
-void Player::SetState(PlayerState s)
-{
-    mState = s;
-
-    // On Enter State.
-    switch (mState) {
-    case PlayerState::IDLE:
-        break;
-    case PlayerState::MOVE:
-        MoveTo(GetMouseTargetPosition());
-        break;
-    case PlayerState::ATTACK:
-        Stop();
-        mCooldown = 0;
-        break;
-    case PlayerState::ATTACK_MOVING:
-        mCooldown = 0;
-        break;
-    }
-}
-
 void Player::Stop()
 {
     mTargetPosition = mPosition;
@@ -146,7 +84,7 @@ void Player::Draw()
 {
     DrawCube(mPosition, 1.0f, 1.0f, 1.0f, RED);
     DrawSphere(mTargetPosition, 0.15f, BLUE);
-    if (mState == PlayerState::ATTACK || mState == PlayerState::ATTACK_MOVING) {
-        DrawSphereWires(mPosition, 1.5f, 4, 8, GREEN);
-    }
+    // if (mState == PlayerState::ATTACK || mState == PlayerState::ATTACK_MOVING) {
+    //     DrawSphereWires(mPosition, 1.5f, 4, 8, GREEN);
+    // }
 }
